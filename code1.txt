@@ -1,0 +1,165 @@
+library(e1071)
+library(seewave)
+
+PerClassIndexs<-function(y)
+{
+  a<-vector("list")
+  n<-length(y)
+  PerClassNums<-table(y)
+  ClassNames<-attributes(PerClassNums)$dimnames[1]$y
+  for(i in 1:length(PerClassNums))
+  {
+    a[[i]]<-which(y==ClassNames[i])
+  }
+  return(a)
+}
+
+PGroups<-function(y,f)
+{ 
+  f<-trunc(f)
+  n<-length(y)
+  groups<-vector("list",f)
+  
+  a<-PerClassIndexs(y)
+  classindex<-IndexSample(a)
+  
+  if(n!=length(classindex))
+    stop("length of y must be equal to length of classindex")
+  if(f<2)
+    stop(" f should be greater than or equal to 2")
+  else if (f>n)
+    stop("f should be less than or equal to the number of observations")
+  else if(f==n)
+    groups<-c(1:n)
+  else 
+  {
+    for(i in 1:n)
+    {
+      jj<-trunc((i-1)%%f)+1
+      cnt<-trunc((i-1)/f)+1
+      groups[[jj]][cnt]<-classindex[i]
+    }
+  }
+  return(groups)
+}
+
+
+IndexSample<-function(a)
+{ if(length(a[[1]])==1)
+  index<-as.vector(a[[1]])
+  else index<-sample(as.vector(a[[1]]))
+  for(i in 2:length(a))
+  {
+    if(length(a[[i]])==1) 
+      index<-c(index,as.vector(a[[i]]))
+    else  index<-c(index,sample(as.vector(a[[i]])))
+  }
+  return(index)
+}
+
+svm.fit<-function(x,y){
+  y<-factor(y)
+  x<-data.frame(x)
+  dt<-cbind(x,y)
+  fit<-svm(y~., data=dt,kernel="sigmoid")
+  return(fit)
+}
+
+
+Strcrossval_ngroup_svm<-function(x,y,ngroup)
+{
+  x<-data.frame(x)
+  y<-as.factor(y)
+  n <-length(y)
+  ngroup<-trunc(ngroup)
+  groups<-PGroups(y,ngroup)
+  cv1<-rep(NA,ngroup)
+  fit.svm <- vector("list",ngroup)
+  conmatrix<- vector("list",ngroup)
+  pre.svm <- rep(NA,ngroup)
+  Acc_svm<-rep(NA,ngroup)
+  for(i in 1:ngroup)
+  {
+    
+  fit.svm<-svm.fit(x[-groups[[i]],],y[-groups[[i]]])
+  
+  pre.svm[groups[[i]]]<-stats::predict(fit.svm,x[groups[[i]],],type="class")
+    
+  conmatrix[[i]]=as.matrix(table(pre.svm[groups[[i]]],y[groups[[i]]]))
+  Acc_svm[i]<-sum(diag(table(pre.svm[groups[[i]]],y[groups[[i]]])))/sum(table(pre.svm[groups[[i]]],y[groups[[i]]]))  
+  }
+  return(list(conmatrix=conmatrix,Acc_svm=Acc_svm))
+}
+svm_result<-Strcrossval_ngroup_svm(x,y,5)
+
+mean(svm_result$Acc_svm)
+sqrt(var(svm_result$Acc_svm))
+svm_result
+
+
+
+Strcrossval_ngroup_svm_sqrt<-function(x1,x2,x3,x4,x5,x6,x7,y,ngroup)
+{
+  x1<-data.frame(x1)  
+  x2<-data.frame(x2)  
+  x3<-data.frame(x3)  
+  x4<-data.frame(x4)  
+  x5<-data.frame(x5)  
+  x6<-data.frame(x6) 
+  x7<-data.frame(x7)
+  y<-as.factor(y)
+  
+ comb=vector("list",6)
+ comb[[1]]=x2
+ comb[[2]]=x3
+ comb[[3]]=x4
+ comb[[4]]=x5
+ comb[[5]]=x6
+ comb[[6]]=x7
+
+ ngroup<-trunc(ngroup)
+ groups<-PGroups(y,ngroup)
+ cv1<-rep(NA,ngroup)
+ nn<-rep(NA,ngroup)
+ fit.svm <- vector("list",ngroup)
+ conmatrix<- vector("list",ngroup)
+ pre.svm <- rep(NA,ngroup)
+ r=c(100,80,60,40,20,10)
+ lamada=seq(0,2,0.005)
+ Acc_svm<-matrix(NA,ngroup,length(lamada))
+       
+ for(j in 1:ngroup)
+ {
+ kl_1=vector()
+ kl_2=vector()
+ kl_3=vector()
+ kl_4=vector()
+ kl_5=vector()
+ kl_6=vector()
+
+ nn[j]=dim(x1[-groups[[j]],])[1]
+
+ for(i in 1:nn[j])
+  {
+ kl_1[i]=kl.dist(t(x1[-groups[[j]],][i,]),t(x2[-groups[[j]],][i,]))$D
+ kl_2[i]=kl.dist(t(x1[-groups[[j]],][i,]),t(x3[-groups[[j]],][i,]))$D
+ kl_3[i]=kl.dist(t(x1[-groups[[j]],][i,]),t(x4[-groups[[j]],][i,]))$D
+ kl_4[i]=kl.dist(t(x1[-groups[[j]],][i,]),t(x5[-groups[[j]],][i,]))$D
+ kl_5[i]=kl.dist(t(x1[-groups[[j]],][i,]),t(x6[-groups[[j]],][i,]))$D
+ kl_6[i]=kl.dist(t(x1[-groups[[j]],][i,]),t(x7[-groups[[j]],][i,]))$D
+  }
+
+ kldist=c(mean(kl_1),mean(kl_2),mean(kl_3),mean(kl_4),mean(kl_5),mean(kl_6))
+
+
+ for(k in 1:length(lamada))
+  {
+ rekl=kldist+lamada[k]*sqrt(r)
+ o1=which(rekl==min(rekl))
+ fit.svm<-svm.fit(comb[[o1]][-groups[[j]],],y[-groups[[j]]])
+ pre.svm[groups[[j]]]<-stats::predict(fit.svm,comb[[o1]][groups[[j]],],type="class")
+ Acc_svm[j,k]<-sum(diag(table(pre.svm[groups[[j]]],y[groups[[j]]])))/sum(table(pre.svm[groups[[j]]],y[groups[[j]]])) 
+  }
+}
+  return(list(Acc_svm=Acc_svm))
+}
