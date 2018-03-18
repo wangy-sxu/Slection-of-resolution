@@ -1,0 +1,12 @@
+PerClassIndexs<-function(y)
+{
+  a<-vector("list")
+  n<-length(y)
+  PerClassNums<-table(y)
+  ClassNames<-attributes(PerClassNums)$dimnames[1]$y
+  for(i in 1:length(PerClassNums))
+  {
+    a[[i]]<-which(y==ClassNames[i])
+  }
+  return(a)
+}
