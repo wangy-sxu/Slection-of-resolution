@@ -1,0 +1,86 @@
+Strcrossval_ngroup_svm<-function(x1,x2,x3,x4,x5,x6,x7,y,ngroup)
+{
+  x1<-data.frame(x1)
+  
+  x2<-data.frame(x2)
+  
+  x3<-data.frame(x3)
+  
+  x4<-data.frame(x4)
+  
+  x5<-data.frame(x5)
+  
+  x6<-data.frame(x6)
+ 
+  x7<-data.frame(x7)
+
+  y<-as.factor(y)
+  
+
+comb=vector("list",6)
+comb[[1]]=x2
+comb[[2]]=x3
+comb[[3]]=x4
+comb[[4]]=x5
+comb[[5]]=x6
+comb[[6]]=x7
+
+
+  ngroup<-trunc(ngroup)
+  groups<-PGroups(y,ngroup)
+  cv1<-rep(NA,ngroup)
+  nn<-rep(NA,ngroup)
+   fit.svm <- vector("list",ngroup)
+   conmatrix<- vector("list",ngroup)
+    pre.svm <- rep(NA,ngroup)
+r=c(100,80,60,40,20,10)
+lamada=seq(0,5,0.01)
+Acc_svm<-matrix(NA,ngroup,length(lamada))
+    
+   
+  for(j in 1:ngroup)
+  {
+kl_1=vector()
+kl_2=vector()
+kl_3=vector()
+kl_4=vector()
+kl_5=vector()
+kl_6=vector()
+
+nn[j]=dim(x1[-groups[[j]],])[1]
+
+for(i in 1:nn[j])
+  {
+
+ kl_1[i]=kl.dist(t(x1[-groups[[j]],][i,]),t(x2[-groups[[j]],][i,]))$D
+
+ kl_2[i]=kl.dist(t(x1[-groups[[j]],][i,]),t(x3[-groups[[j]],][i,]))$D
+
+ kl_3[i]=kl.dist(t(x1[-groups[[j]],][i,]),t(x4[-groups[[j]],][i,]))$D
+
+ kl_4[i]=kl.dist(t(x1[-groups[[j]],][i,]),t(x5[-groups[[j]],][i,]))$D
+
+ kl_5[i]=kl.dist(t(x1[-groups[[j]],][i,]),t(x6[-groups[[j]],][i,]))$D
+
+ kl_6[i]=kl.dist(t(x1[-groups[[j]],][i,]),t(x7[-groups[[j]],][i,]))$D
+}
+
+kldist=c(mean(kl_1),mean(kl_2),mean(kl_3),mean(kl_4),mean(kl_5),mean(kl_6))
+
+
+for(k in 1:length(lamada))
+  {
+rekl=kldist+lamada[k]*log10(r)
+
+o1=which(rekl==min(rekl))
+  
+  fit.svm<-svm.fit(comb[[o1]][-groups[[j]],],y[-groups[[j]]])
+  
+  pre.svm[groups[[j]]]<-stats::predict(fit.svm,comb[[o1]][groups[[j]],],type="class")
+
+  Acc_svm[j,k]<-sum(diag(table(pre.svm[groups[[j]]],y[groups[[j]]])))/sum(table(pre.svm[groups[[j]]],y[groups[[j]]])) 
+  }
+
+}
+  return(list(Acc_svm=Acc_svm))
+}
