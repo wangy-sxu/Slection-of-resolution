@@ -1,0 +1,7 @@
+svm.fit<-function(x,y){
+  y<-factor(y)
+  x<-data.frame(x)
+  dt<-cbind(x,y)
+  fit<-svm(y~., data=dt,kernel="sigmoid")
+  return(fit)
+}
