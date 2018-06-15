@@ -1,1 +1,0 @@
-# Slection-of-resolution
