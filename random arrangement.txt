@@ -1,0 +1,13 @@
+#Sampling for the indexes
+IndexSample<-function(a)
+{ if(length(a[[1]])==1)
+  index<-as.vector(a[[1]])
+  else index<-sample(as.vector(a[[1]]))
+  for(i in 2:length(a))
+  {
+    if(length(a[[i]])==1) 
+      index<-c(index,as.vector(a[[i]]))
+    else  index<-c(index,sample(as.vector(a[[i]])))
+  }
+  return(index)
+}
